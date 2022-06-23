@@ -4,6 +4,6 @@ package main
 
 const (
 	Version     = "v0.4.0"
-	GitCommit   = "d0c78b6"          // the commit JUST BEFORE the release
-	VersionDate = "2021-08-30 07:09" // UTC
+	GitCommit   = "e0d074a"          // the commit JUST BEFORE the release
+	VersionDate = "2022-06-23 07:01" // UTC
 )
