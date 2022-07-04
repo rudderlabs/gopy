@@ -49,6 +49,7 @@ var (
 		"_examples/cstrings":    []string{"py2", "py3"},
 		"_examples/pkgconflict": []string{"py2", "py3"},
 		"_examples/variadic":    []string{"py3"},
+		"_examples/multireturn": []string{"py3"},
 	}
 
 	testEnvironment = os.Environ()
@@ -60,11 +61,20 @@ func init() {
 }
 
 func TestGovet(t *testing.T) {
+	buildCmd := gopyMakeCmdBuild()
+	buildCfg := NewBuildCfg(&buildCmd.Flag)
+	buildCfg.VM = testBackends["py3"]
+	buildArgs, buildEnv, err := getBuildArgsAndEnv(buildCfg)
+	if err != nil {
+		t.Fatalf("error building env:%v.\n Args:%v.\n Env:%v\n", err, buildArgs, buildEnv)
+	}
+
 	cmd := exec.Command("go", "vet", "./...")
 	buf := new(bytes.Buffer)
 	cmd.Stdout = buf
 	cmd.Stderr = buf
-	err := cmd.Run()
+	cmd.Env = buildEnv
+	err = cmd.Run()
 	if err != nil {
 		t.Fatalf("error running %s:\n%s\n%v", "go vet", string(buf.Bytes()), err)
 	}
@@ -96,34 +106,6 @@ func TestGofmt(t *testing.T) {
 
 	if len(buf.Bytes()) != 0 {
 		t.Errorf("some files were not gofmt'ed:\n%s\n", string(buf.Bytes()))
-	}
-}
-
-func TestGoPyErrors(t *testing.T) {
-	pyvm := testBackends["py3"]
-	workdir, err := ioutil.TempDir("", "gopy-")
-	if err != nil {
-		t.Fatalf("could not create workdir: %v\n", err)
-	}
-	t.Logf("pyvm: %s making work dir: %s\n", pyvm, workdir)
-	defer os.RemoveAll(workdir)
-
-	curPkgPath := reflect.TypeOf(pkg{}).PkgPath()
-	fpath := filepath.Join(curPkgPath, "_examples/gopyerrors")
-	cmd := exec.Command("go", "run", ".", "gen", "-vm="+pyvm, "-output="+workdir, fpath)
-	t.Logf("running: %v\n", cmd.Args)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("could not run %v: %+v\n", strings.Join(cmd.Args, " "), err)
-	}
-	contains := `--- Processing package: github.com/rudderlabs/gopy/_examples/gopyerrors ---
-ignoring python incompatible function: .func github.com/rudderlabs/gopy/_examples/gopyerrors.NotErrorMany() (int, int): func() (int, int): gopy: second result value must be of type error: func() (int, int)
-ignoring python incompatible method: gopyerrors.func (*github.com/rudderlabs/gopy/_examples/gopyerrors.Struct).NotErrorMany() (int, string): func() (int, string): gopy: second result value must be of type error: func() (int, string)
-ignoring python incompatible method: gopyerrors.func (*github.com/rudderlabs/gopy/_examples/gopyerrors.Struct).TooMany() (int, int, string): func() (int, int, string): gopy: too many results to return: func() (int, int, string)
-ignoring python incompatible function: .func github.com/rudderlabs/gopy/_examples/gopyerrors.TooMany() (int, int, string): func() (int, int, string): gopy: too many results to return: func() (int, int, string)
-`
-	if got, want := string(out), contains; !strings.Contains(got, want) {
-		t.Fatalf("%v does not contain\n%v\n", got, want)
 	}
 }
 
@@ -825,6 +807,34 @@ Variadic 1+2+3+4+5 = 15
 Variadic Struct s(1)+s(2)+s(3) = 6
 Variadic InterFace i(1)+i(2)+i(3) = 6
 Type OK
+`),
+	})
+}
+
+func TestBindMultiReturn(t *testing.T) {
+	// t.Parallel()
+	path := "_examples/multireturn"
+	testPkg(t, pkg{
+		path:   path,
+		lang:   features[path],
+		cmd:    "build",
+		extras: nil,
+		want: []byte(`No Return None
+Single WithoutError Return 100
+Single Str WithoutError Return '150'
+Single WithError(False) Return None
+Single WithError(True). Exception: RuntimeError('Error')
+Double WithoutError(Without String) Return (200, 300)
+Double WithoutError(With String) Return ('200', '300')
+Double WithError(True). Exception: RuntimeError('Error')
+Double WithError(False) Return '500'
+Triple WithoutError(Without String) Return (600, 700, 800)
+Triple WithoutError(With String) Return (600, '700', 800)
+Triple WithError(True) Exception: RuntimeError('Error')
+Triple WithError(False) Return (1100, 1200)
+Triple WithError(True) Exception: RuntimeError('Error')
+Triple WithError(False) Return (1500, 1600)
+Triple WithoutError() Return (1700, 1800, 1900)
 `),
 	})
 }
