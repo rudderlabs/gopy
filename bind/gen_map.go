@@ -289,7 +289,7 @@ otherwise parameter is a python list that we copy from
 
 		// elem
 		g.gofile.Printf("//export %s_elem\n", slNm)
-		g.gofile.Printf("func %s_elem(handle CGoHandle, _ky %s) %s {\n", slNm, ksym.cgoname, esym.cgoname)
+		g.gofile.Printf("func %s_elem(handle CGoHandle, _ky %s) %s {\n", slNm, ksym.cgoname, "*C.PyObject")
 		g.gofile.Indent()
 		g.gofile.Printf("s := deptrFromHandle_%s(handle)\n", slNm)
 		if ksym.py2go != "" {
@@ -309,8 +309,51 @@ otherwise parameter is a python list that we copy from
 		}
 		g.gofile.Outdent()
 		g.gofile.Printf("}\n\n")
+		temp_prem := `
+func handleFromPtr_genericStruct(p interface{}, structType string) CGoHandle {
+	return CGoHandle(gopyh.Register(structType, p))
+}
 
-		g.pybuild.Printf("mod.add_function('%s_elem', retval('%s'), [param('%s', 'handle'), param('%s', '_ky')])\n", slNm, esym.cpyname, PyHandle, ksym.cpyname)
+func convert(arg interface{}) *C.PyObject {
+	switch reflect.ValueOf(arg).Kind() {
+	case reflect.Int:
+		x := arg.(int)
+		return C.gopy_build_int64(C.longlong(x))
+	case reflect.Float64:
+		x := arg.(float64)
+		return C.gopy_build_float64(C.double(x))
+	case reflect.String:
+		x := arg.(string)
+		return C.gopy_build_string(C.CString(x))
+	case reflect.Interface:
+		return convert(reflect.ValueOf(arg))
+	case reflect.Struct:
+		objType := fmt.Sprintf("%v", arg)
+		y := handleFromPtr_genericStruct(&arg, objType)
+		pyObjectTypes := strings.Split(objType, ".")
+		return C.Py_BuildGenericStruct(C.CString(pyObjectTypes[len(pyObjectTypes)-1]), C.longlong(y))
+		//return C.gopy_build_string(C.CString(pyObjectTypes[len(pyObjectTypes)-1]))
+	case reflect.Map:
+		objType := fmt.Sprintf("%v", arg)
+		x, ok := arg.(map[string]interface{})
+		if !ok {
+			e := "Invalid type: " + reflect.ValueOf(arg).Kind().String() + " value:" + reflect.ValueOf(arg).String()
+			return C.gopy_build_string(C.CString(e))
+		}
+		y := handleFromPtr_genericStruct(&x, objType)
+		//pyObjectTypes := strings.Split(objType, ".")
+		return C.Py_BuildJsonTree(C.longlong(y))
+	}
+	e := reflect.ValueOf(arg).Kind().String() + reflect.ValueOf(arg).String()
+	x := C.CString(e)
+	return C.gopy_build_string(x)
+}
+		`
+		//temp_prem = fmt.Sprintf(temp_prem, `"%T"`, `"%T"`)
+		g.gofile.Printf(temp_prem, `%T`, `%T`)
+		g.gofile.Printf("\n\n")
+		g.pybuild.Printf("mod.add_function('%s_elem', retval('%s', caller_owns_return=True), [param('%s', 'handle'), param('%s', '_ky')])\n",
+			slNm, "PyObject*", PyHandle, ksym.cpyname)
 
 		// contains
 		g.gofile.Printf("//export %s_contains\n", slNm)

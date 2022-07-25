@@ -85,6 +85,40 @@ static inline void gopy_err_handle() {
 		PyErr_Print();
 	}
 }
+static PyObject*
+Py_BuildGenericStruct(char *objType, long long handle)
+{
+    PyObject *hello_module = PyImport_ImportModule("out.ifxmap");
+    PyObject *testStructCls = PyObject_GetAttrString(hello_module, objType);
+	PyObject *argTuple = PyTuple_New(1);
+	PyObject *handlePO = Py_BuildValue("L", handle);
+	PyTuple_SetItem(argTuple, 0, handlePO);
+
+    PyObject* result = PyObject_CallObject(testStructCls, argTuple);
+
+    Py_DECREF(testStructCls);
+    Py_DECREF(hello_module);
+
+    return result;
+}
+static PyObject*
+Py_BuildJsonTree(long long handle)
+{
+    PyObject *hello_module = PyImport_ImportModule("out.ifxmap");
+    PyObject *testStructCls = PyObject_GetAttrString(hello_module, "Map_string_interface_");
+	PyObject *argTuple = PyTuple_New(0);
+	//PyTuple_SetItem(argTuple, 0, handle);
+	PyObject *handlePO = Py_BuildValue("L", handle);
+	PyObject *kwargs = PyDict_New();
+	PyDict_SetItem(kwargs, gopy_build_string("handle"), handlePO);
+
+    PyObject* result = PyObject_Call(testStructCls, argTuple, kwargs);
+
+    Py_DECREF(testStructCls);
+    Py_DECREF(hello_module);
+
+    return result;
+}
 %[8]s
 */
 import "C"

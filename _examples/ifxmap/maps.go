@@ -4,14 +4,10 @@
 
 package ifxmap
 
-import (
-	//"sort"
-)
-
 type TestStruct struct {
 	Value int
 }
- 
+
 func New() map[string]interface{} {
 	retval := make(map[string]interface{})
 
@@ -19,14 +15,19 @@ func New() map[string]interface{} {
 	retval["string"] = "sample"
 	retval["int"] = 2
 	retval["bool"] = true
-	retval["struct"] = TestStruct {
+	retval["struct"] = TestStruct{
 		Value: 6,
 	}
 
-	structPtr := TestStruct {
-		Value: 12, 
+	structPtr := TestStruct{
+		Value: 12,
 	}
-	retval["structPtr"] = &structPtr 
+	retval["map"] = map[string]interface{}{
+		"string": "abcd",
+		"int":    1,
+		"float":  2.69,
+	}
+	retval["structPtr"] = &structPtr
 
 	return retval
 }
