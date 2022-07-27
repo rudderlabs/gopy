@@ -14,6 +14,7 @@ func New() map[string]interface{} {
 	retval["float"] = 3.14159
 	retval["string"] = "sample"
 	retval["int"] = 2
+	retval["uint"] = uint64(3)
 	retval["bool"] = true
 	retval["struct"] = TestStruct{
 		Value: 6,

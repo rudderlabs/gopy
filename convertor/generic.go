@@ -11,9 +11,6 @@ typedef uint8_t bool;
 // static inline is trick for avoiding need for extra .c file
 // the following are used for build value -- switch on reflect.Kind
 // or the types equivalent
-static inline PyObject* gopy_build_bool(uint8_t val) {
-	return Py_BuildValue("b", val);
-}
 static inline PyObject* gopy_build_int64(int64_t val) {
 	return Py_BuildValue("k", val);
 }
@@ -40,7 +37,12 @@ static inline void gopy_err_handle() {
 		PyErr_Print();
 	}
 }
-
+static PyObject* Py_BuildValue2(char *format, long long arg0)
+{
+	PyObject *retval = Py_BuildValue(format, arg0);
+	free(format);
+	return retval;
+}
 static PyObject*
 Py_BuildGenericStruct(char *objType, long long handle)
 {
@@ -95,6 +97,15 @@ func Convert(arg interface{}) *C.PyObject {
 	case reflect.Int:
 		x := arg.(int)
 		return C.gopy_build_int64(C.longlong(x))
+	case reflect.Uint64:
+		x := arg.(uint64)
+		return C.gopy_build_uint64(C.ulonglong(x))
+	case reflect.Bool:
+		x := arg.(bool)
+		if x {
+			return C.Py_True
+		}
+		return C.Py_False
 	case reflect.Float64:
 		x := arg.(float64)
 		return C.gopy_build_float64(C.double(x))
@@ -117,6 +128,10 @@ func Convert(arg interface{}) *C.PyObject {
 		}
 		y := handleFromPtrGenericStruct(&x, objType)
 		return C.Build_Map_string_interface(C.longlong(y))
+	case reflect.Ptr:
+		objType := fmt.Sprintf("%T", arg)
+		y := handleFromPtrGenericStruct(&arg, objType)
+		return C.gopy_build_int64(C.longlong(y))
 	}
 	e := reflect.ValueOf(arg).Kind().String() + reflect.ValueOf(arg).String()
 	x := C.CString(e)
