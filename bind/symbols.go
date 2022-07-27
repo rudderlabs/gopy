@@ -1212,8 +1212,8 @@ func (sym *symtab) addInterfaceType(pkg *types.Package, obj types.Object, t type
 			cgoname:      "*C.char",
 			cpyname:      "char*",
 			pysig:        "str",
-			go2py:        `convert`,
-			go2pyParenEx: "",
+			go2py:        "C.Py_BuildValue1(C.CString(\"N\"), unsafe.Pointer(convertor.Convert",
+			go2pyParenEx: "))",
 			py2go:        "C.GoString",
 			zval:         `""`,
 		}
