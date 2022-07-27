@@ -130,8 +130,9 @@ func Convert(arg interface{}) *C.PyObject {
 		return C.Build_Map_string_interface(C.longlong(y))
 	case reflect.Ptr:
 		objType := fmt.Sprintf("%T", arg)
-		y := handleFromPtrGenericStruct(&arg, objType)
-		return C.gopy_build_int64(C.longlong(y))
+		y := handleFromPtrGenericStruct(arg, objType)
+		pyObjectTypes := strings.Split(objType, ".")
+		return C.Py_BuildGenericStruct(C.CString(pyObjectTypes[len(pyObjectTypes)-1]), C.longlong(y))
 	}
 	e := reflect.ValueOf(arg).Kind().String() + reflect.ValueOf(arg).String()
 	x := C.CString(e)
