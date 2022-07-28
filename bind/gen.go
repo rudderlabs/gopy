@@ -85,12 +85,6 @@ static inline void gopy_err_handle() {
 		PyErr_Print();
 	}
 }
-static PyObject* Py_BuildValue1(char *format, void* arg0)
-{
-	PyObject *retval = Py_BuildValue(format, arg0);
-	free(format);
-	return retval;
-}
 %[8]s
 */
 import "C"

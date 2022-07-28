@@ -289,7 +289,7 @@ otherwise parameter is a python list that we copy from
 
 		// elem
 		g.gofile.Printf("//export %s_elem\n", slNm)
-		g.gofile.Printf("func %s_elem(handle CGoHandle, _ky %s) %s {\n", slNm, ksym.cgoname, "*C.PyObject")
+		g.gofile.Printf("func %s_elem(handle CGoHandle, _ky %s) %s {\n", slNm, ksym.cgoname, esym.cgoname)
 		g.gofile.Indent()
 		g.gofile.Printf("s := deptrFromHandle_%s(handle)\n", slNm)
 		if ksym.py2go != "" {
